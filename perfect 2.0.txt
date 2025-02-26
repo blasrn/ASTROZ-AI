@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI ASSISTANT</title>
+    <title>ASTROZ </title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+            font-weight: bold; /* Make text bold */
+            text-transform: uppercase; /* Make text uppercase */
+            color: white; /* Adjusted color for text */
+            text-align: center; /* Center the title on the page */
+            background-color: #000000; 
+        }
+
+        #logo {
+            display: block;
+            margin: 0 auto;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
+
+        #chat-container {
+            width: 550px;
+            border: 2px solid #ccc;
+            padding: 10px;
+            margin: 5px auto; /* Center horizontally and add top margin */
+            background-color: #e0f7fa; /* Light green color */
+            font-weight: bold; /* Bold text */
+            text-transform: uppercase; /* Uppercase text */
+            color: white; /* White color for text */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Vertically center content */
+            align-items: center; /* Center the content horizontally */
+            height: 60vh; /* Optional: Set height to ensure it centers vertically */
+        }
+
+      #chat-log {
+    width: 500px;
+    height: 600px;
+    overflow-y: scroll;
+    padding: 5px;
+    border: 10px solid #eee;
+    margin-bottom: 50px;
+    background-color: #66A5AD; /* Light blue color */
+    color: white; /* White color for text */
+    font-size: small; /* Smaller text size */
+}
+
+.user-message {
+    text-align: right;
+    color: white; /* White color for user messages */
+    font-size: small; /* Smaller text size */
+}
+
+.ai-message {
+    text-align: left;
+    color: black; /* Black color for AI messages */
+    font-size: small; /* Smaller text size */
+}
+
+#user-input {
+    width: 80%;
+    padding: 5px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: black; /* Black color for text */
+    font-size: small; /* Smaller text size */
+}
+
+
+        #send-button {
+            padding: 5px 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: Black; /* White color for text */
+           text-align: right;
+        }
+
+        #logo-upload-container {
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: white; /* White color for text */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Logo Display -->
+    <img id="logo" style="display: none;">
+      <h1>Ai ASSISTANT</h1>
+    <h1>ASTROZ</h1>
+
+    <!-- Logo Upload (Once Only) -->
+    <div id="logo-upload-container">
+        <label for="logo-upload"></label>
+        <input type="file" id="logo-upload" accept="image/*">
+    </div>
+
+    <div id="chat-container">
+        <div id="chat-log"></div>
+        <input type="text" id="user-input" placeholder="ASK ME ANYTHING...">
+        <button id="send-button">Send</button>
+    </div>
+
+    <script>
+        const chatLog = document.getElementById('chat-log');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const logoUpload = document.getElementById('logo-upload');
+        const logo = document.getElementById('logo');
+
+        // Logo Upload (Once Only)
+        logoUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    logo.src = e.target.result;
+                    logo.style.display = 'block'; // Show the logo after it's uploaded
+                };
+                reader.readAsDataURL(file);
+                logoUpload.style.display = 'none'; // Disable further changes
+            }
+        });
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // Display user message
+            appendMessage("You: " + message, "user-message");
+            userInput.value = '';
+
+            // Call Gemini API
+            try {
+                const aiResponse = await getGeminiResponse(message); // Function to interact with Gemini API
+
+                // Display AI response
+                appendMessage("" + aiResponse, "ai-message");
+            } catch (error) {
+                console.error("Error fetching Gemini response:", error);
+                appendMessage("ASTROZ: Sorry, I encountered an error.", "ai-message");
+            }
+
+            // Scroll to bottom
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        function appendMessage(message, className) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add(className);
+            messageElement.textContent = message;
+            chatLog.appendChild(messageElement);
+        }
+
+        async function getGeminiResponse(prompt) {
+            const API_KEY = "AIzaSyDdsgaIuBmlUApkuGkEMSZlqvvQEUbHloU";  // Replace with your actual Gemini API key
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${API_KEY}`;
+
+            const data = {
+                "contents": [{
+                    "parts": [{ "text": prompt }]
+                }]
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const jsonResponse = await response.json();
+
+                if (jsonResponse.candidates && jsonResponse.candidates.length > 0 && jsonResponse.candidates[0].content && jsonResponse.candidates[0].content.parts && jsonResponse.candidates[0].content.parts.length > 0) {
+                    return jsonResponse.candidates[0].content.parts[0].text;
+                } else {
+                    return "Sorry, I couldn't generate a relevant response.";
+                }
+
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                return "Sorry, I am having trouble connecting to the server.";
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
